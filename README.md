@@ -1,12 +1,17 @@
 # Hướng dẫn cài đặt và chạy
 
 # Bước 1: Chuẩn bị mã nguồn
+
+Nếu chưa có, tải và cài đặt Git từ https://git-scm.com/download/
+
+Mở terminal và chạy các lệnh sau:
+```bash
 git clone https://github.com/Ngoenngoen1910/mini-travel
 
 cd streamlit-chat
 
-pip install -r requirements.txt
-
+pip install -r requirements.txt__
+```
 # Bước 2: Cấu hình Firebase
 
 Tạo thư mục .streamlit và file .streamlit/secrets.toml với file secrets.toml đi kèm
@@ -30,6 +35,11 @@ LƯU Ý: Giữ tab Google Colab luôn mở trong quá trình sử dụng
 Mở file app.py trên máy
 
 Tìm dòng OLLAMA_HOST và thay thế bằng link Pinggy vừa lấy được
+```bash
+# CẬP NHẬP LINK PINGGY
+OLLAMA_HOST = 'http://vlsqc-34-87-72-82.a.free.pinggy.link' <-Thay thế link trong này
+client = Client(host=OLLAMA_HOST)
+```
 
 Khởi chạy Streamlit:
 
