@@ -9,24 +9,19 @@ from datetime import datetime, timezone
 from ollama import Client
 from streamlit_extras.stylable_container import stylable_container
 
-# CẤU HÌNH TRANG
 st.set_page_config(page_title="Mini Travel", page_icon="✈️", layout="wide")
 
-# CẤU HÌNH LLM (OLLAMA)
 MODEL = "llama3.2:1b"
 # CẬP NHẬP LINK PINGGY
 OLLAMA_HOST = 'http://vlsqc-34-87-72-82.a.free.pinggy.link'
 client = Client(host=OLLAMA_HOST)
 
-# KẾT NỐI FIREBASE 
 @st.cache_resource
 def get_firebase_clients():
-    # 1. Pyrebase (cho Client-side Auth: Đăng nhập/Đăng ký)
     firebase_cfg = st.secrets["firebase_client"]
     firebase_app = pyrebase.initialize_app(firebase_cfg)
     auth_pyrebase = firebase_app.auth()
 
-    # 2. Firebase Admin (cho Firestore và xác thực Token an toàn)
     if not firebase_admin._apps:
         cred = credentials.Certificate(dict(st.secrets["firebase_admin"]))
         firebase_admin.initialize_app(cred)
@@ -39,14 +34,10 @@ except Exception as e:
     st.error(f"Lỗi kết nối Firebase. Kiểm tra secrets.toml. Chi tiết: {e}")
     st.stop()
 
-# QUẢN LÝ SESSION STATE 
 if "user" not in st.session_state:
     st.session_state.user = None
 if "messages" not in st.session_state:
-    # Tăng giới hạn lưu tin nhắn để xem được nhiều lịch trình cũ hơn
     st.session_state.messages = deque([], maxlen=20) 
-
-# CÁC HÀM XỬ LÝ DATABASE & LLM 
 
 def save_message_to_firestore(uid: str, role: str, content: str):
     """Lưu tin nhắn (hoặc lịch trình) vào subcollection của user"""
@@ -109,7 +100,6 @@ def generate_itinerary(payload: dict):
     """
 
     try:
-        # Gọi LLM (không stream để đảm bảo cấu trúc hoàn chỉnh trước khi hiển thị)
         response = client.chat(
             model=MODEL,
             messages=[{'role': 'user', 'content': prompt}]
@@ -118,7 +108,6 @@ def generate_itinerary(payload: dict):
     except Exception as e:
         return f"⚠️ Lỗi kết nối đến Travel AI Agent: {e}. Vui lòng kiểm tra lại đường truyền hoặc server Ollama."
 
-# GIAO DIỆN XÁC THỰC (LOGIN/SIGNUP)
 def auth_ui():
     st.title("🌏 Mini Travel")
     
@@ -158,9 +147,7 @@ def auth_ui():
                 except Exception as e:
                     st.error(f"Đăng ký thất bại: {e}")
 
-# GIAO DIỆN CHÍNH (SAU KHI ĐĂNG NHẬP)
 def main_app_ui():
-    # Header với nút đăng xuất
     col_header_1, col_header_2 = st.columns([8, 1])
     with col_header_1:
         st.subheader(f"Chào mừng, {st.session_state.user['email']}!")
@@ -172,7 +159,6 @@ def main_app_ui():
     
     st.divider()
 
-    # Chia layout: Cột trái (Input Form) - Cột phải (Kết quả & Lịch sử)
     left_col, right_col = st.columns([1, 1.5], gap="large")
 
     with left_col:
@@ -201,63 +187,53 @@ def main_app_ui():
                 submitted = st.form_submit_button("Lập kế hoạch ngay", use_container_width=True)
 
                 if submitted:
-                    # Validate input
                     if not origin or not destination:
                         st.error("Vui lòng nhập đủ Điểm đi và Điểm đến.")
                     elif len(dates) != 2:
                         st.error("Vui lòng chọn đủ Ngày bắt đầu và Ngày kết thúc trên lịch.")
                     else:
-                        # Tính toán số ngày chính xác
                         delta = dates[1] - dates[0]
                         num_days = delta.days + 1
                         
                         date_str = f"{dates[0].strftime('%d/%m/%Y')} - {dates[1].strftime('%d/%m/%Y')}"
                         
-                        # Tạo payload để gửi cho hàm xử lý
                         payload = {
                             "origin": origin,
                             "destination": destination,
                             "dates": date_str,
-                            "num_days": num_days, # Quan trọng: Truyền số ngày chính xác
+                            "num_days": num_days, 
                             "interests": interests,
                             "pace": pace
                         }
                         
-                        # Hiển thị request của user lên UI ngay lập tức
                         user_msg = f"**Yêu cầu chuyến đi:** {origin} ➡️ {destination} | 📅 {date_str} ({num_days} ngày) | {', '.join(interests)} | {pace}"
                         st.session_state.messages.append({"role": "user", "content": user_msg})
                         save_message_to_firestore(st.session_state.user["uid"], "user", user_msg)
 
-                        # Gọi AI tạo lịch trình
                         with st.spinner(f"AI đang thiết kế lịch trình (khoảng 30s ⏳)"):
                             ai_response = generate_itinerary(payload)
                         
-                        # Lưu và hiển thị kết quả
                         st.session_state.messages.append({"role": "assistant", "content": ai_response})
                         save_message_to_firestore(st.session_state.user["uid"], "assistant", ai_response)
-                        st.rerun() # Rerun để cập nhật cột bên phải
+                        st.rerun() 
 
     with right_col:
         st.markdown("###    Lịch trình & Lịch sử")
         
-        # Container hiển thị lịch sử chat/lịch trình
         history_container = st.container(height=700, border=False)
         with history_container:
             if len(st.session_state.messages) == 0:
                 st.info("Chưa có lịch trình nào. Hãy điền thông tin bên trái để bắt đầu!")
             else:
-                # Hiển thị ngược từ mới nhất đến cũ nhất để dễ theo dõi
                 for msg in reversed(list(st.session_state.messages)):
                     if msg["role"] == "user":
                         with st.chat_message("user", avatar="🧑‍💻"):
                             st.markdown(msg["content"])
                     else:
                         with st.chat_message("assistant", avatar="🤖"):
-                            # Dùng expander cho các lịch trình dài để gọn gàng hơn
                             with st.expander("Xem chi tiết lịch trình", expanded=True):
                                 st.markdown(msg["content"])
 
-# ĐIỀU HƯỚNG CHÍNH
 if not st.session_state.user:
     auth_ui()
 else:
