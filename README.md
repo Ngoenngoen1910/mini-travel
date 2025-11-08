@@ -7,14 +7,20 @@ Nếu chưa có, tải và cài đặt Git từ https://git-scm.com/download/
 Mở terminal và chạy các lệnh sau:
 ```bash
 git clone https://github.com/Ngoenngoen1910/mini-travel
-
 cd streamlit-chat
-
 pip install -r requirements.txt__
 ```
 # Bước 2: Cấu hình Firebase
 
-Tạo thư mục .streamlit và file .streamlit/secrets.toml với file secrets.toml đi kèm
+Truy cập Firebase Console
+
+Nhấn Add project, đặt tên
+
+Trong menu bên trái, chọn Build:
+
+Authentication > Get started > Chọn Email/Password > Enable > Save.
+
+Firestore Database > Create database > Start > Next > Enable.
 
 # Bước 3: Khởi chạy Ollama trên Google Colab
 
